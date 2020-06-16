@@ -3,10 +3,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <GL/glut.h>
+#include <GL/freeglut.h>
 #include <math.h>
+#include <time.h>
+
 #define PI 3.14159265358979323846
 #define DEGREE ((2 * PI)/360) // one degree in radians
-
+#define ROUND_TO_MULTIPLE_OF_64(x) (((int)x >> 6) << 6)
 #define VIEWPORT_WIDTH 1024
 #define VIEWPORT_HEIGHT 512
 
@@ -93,14 +96,16 @@ void castRays() {
     float aTan = -1/tan(rayAngle); // inverse tangent
 
     if (rayAngle > PI) { // ray looking up
-      rayY = (((int)playerY >> 6) << 6) - 0.0001; // round to nearest multiple of 64 (and subtract for accuracy)
+      rayY = ROUND_TO_MULTIPLE_OF_64(playerY) - 0.0001; // round to nearest multiple of 64 (and subtract for accuracy)
+                                                        // each tile is 64x64, and we subtract a small amount to ensure that
+                                                        // we don't clip the boundary of the tile and get graphical errors
       rayX = (playerY - rayY) * aTan + playerX;
       yOffset = -64;
       xOffset = -yOffset * aTan;
     }
 
     if (rayAngle < PI) { // ray looking down
-      rayY = (((int)playerY >> 6) << 6) + 64;
+      rayY = ROUND_TO_MULTIPLE_OF_64(playerY) + 64;
       rayX = (playerY - rayY) * aTan + playerX;
       yOffset = 64;
       xOffset = -yOffset * aTan;
@@ -216,12 +221,31 @@ void castRays() {
   }
 }
 
+void frameTime(int frameTime) {
+  // Draw blue text at screen coordinates (100, 120), where (0, 0) is the top-left of the
+  // screen in an 18-point Helvetica font
+  char stringToPrint[20];
+  sprintf(stringToPrint, "%ims", frameTime);
+  glColor3f(1, 1, 1);
+  glRasterPos2i(520, 500);
+  glutBitmapString(GLUT_BITMAP_HELVETICA_18, (const unsigned char *)stringToPrint);
+}
+
+int previousFrameStartTime = 0;
+
 void display() {
+  int frameStartTime = glutGet(GLUT_ELAPSED_TIME);
+  int deltaTime = frameStartTime - previousFrameStartTime;
+  previousFrameStartTime = frameStartTime;
+
+
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   drawMap2D();
   castRays();
   drawPlayer();
+  frameTime(deltaTime);
   glutSwapBuffers(); // swaps our buffers around
+ 
 }
 
 void buttons(unsigned char key, int x, int y) {
