@@ -4,7 +4,7 @@ A raycaster engine written in C and OpenGL (FreeGLUT).
 
 ## Todo
 
-* Refactor current file
+* Basic makefile
 
 * Make dynamic FOV
 
@@ -21,3 +21,5 @@ A raycaster engine written in C and OpenGL (FreeGLUT).
 * Dynamic resolutions
 
 * ~~Write an FPS counter (based on frametime)~~
+
+* ~~Refactor current file~~

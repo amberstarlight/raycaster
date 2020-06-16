@@ -1,17 +1,13 @@
-// gcc -lglut -lGLU -lGL -lm main.c
-
 #include <stdio.h>
-#include <stdlib.h>
+#include <math.h>
 #include <GL/glut.h>
 #include <GL/freeglut.h>
-#include <math.h>
-#include <time.h>
 
-#define PI 3.14159265358979323846
-#define DEGREE ((2 * PI)/360) // one degree in radians
-#define ROUND_TO_MULTIPLE_OF_64(x) (((int)x >> 6) << 6)
-#define VIEWPORT_WIDTH 1024
-#define VIEWPORT_HEIGHT 512
+#include "utils.h"
+#include "gfx.h"
+
+int previousFrameStartTime = 0;
+float playerX, playerY, playerDeltaX, playerDeltaY, playerAngle;
 
 // Map
 const int mapX = 8,
@@ -28,9 +24,6 @@ int map[] = {
   1,0,0,0,0,0,0,1,
   1,1,1,1,1,1,1,1,
 };
-
-// Player position, deltas, and angle
-float playerX, playerY, playerDeltaX, playerDeltaY, playerAngle;
 
 void drawPlayer() {
   glColor3f(0, 1, 0);
@@ -68,15 +61,6 @@ void drawMap2D() {
      glEnd();
    }
   }  
-}
-
-// pythagorean theorem
-//     /|
-//  c /_| b
-//     a
-
-float dist(float ax, float ay, float bx, float by) {
-  return ( sqrt((bx - ax) * (bx - ax) + (by-ay) * (by - ay)) );
 }
 
 void castRays() {
@@ -125,7 +109,7 @@ void castRays() {
       if (mapArrPos >= 0 && mapArrPos < (mapX * mapY) && map[mapArrPos] == 1) { // hit a horizontal wall
         horRayX = rayX;
         horRayY = rayY;
-        rayDistHor = dist(playerX, playerY, horRayX, horRayY);
+        rayDistHor = length(playerX, playerY, horRayX, horRayY);
         dof = 8;
       } else {
         rayX += xOffset;
@@ -169,7 +153,7 @@ void castRays() {
       if (mapArrPos >= 0 && mapArrPos < (mapX * mapY) && map[mapArrPos] == 1) { // hit a vertical wall
         vertRayX = rayX;
         vertRayY = rayY;
-        rayDistVer = dist(playerX, playerY, vertRayX, vertRayY);
+        rayDistVer = length(playerX, playerY, vertRayX, vertRayY);
         dof = 8;
       } else {
         rayX += xOffset;
@@ -221,23 +205,10 @@ void castRays() {
   }
 }
 
-void frameTime(int frameTime) {
-  // Draw blue text at screen coordinates (100, 120), where (0, 0) is the top-left of the
-  // screen in an 18-point Helvetica font
-  char stringToPrint[20];
-  sprintf(stringToPrint, "%ims", frameTime);
-  glColor3f(1, 1, 1);
-  glRasterPos2i(520, 500);
-  glutBitmapString(GLUT_BITMAP_HELVETICA_18, (const unsigned char *)stringToPrint);
-}
-
-int previousFrameStartTime = 0;
-
 void display() {
   int frameStartTime = glutGet(GLUT_ELAPSED_TIME);
   int deltaTime = frameStartTime - previousFrameStartTime;
   previousFrameStartTime = frameStartTime;
-
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
   drawMap2D();
@@ -246,52 +217,4 @@ void display() {
   frameTime(deltaTime);
   glutSwapBuffers(); // swaps our buffers around
  
-}
-
-void buttons(unsigned char key, int x, int y) {
-  switch (key) {
-  case 'd':
-    playerAngle += 0.1;
-    if (playerAngle > 2 * PI) { playerAngle -= 2 * PI; } // 2 * pi = 360Degrees 
-    playerDeltaX = cos(playerAngle) * 5;
-    playerDeltaY = sin(playerAngle) * 5;
-    break;
-  case 'a':
-    playerAngle -= 0.1;
-    if (playerAngle < 0) { playerAngle += 2 * PI; }
-    playerDeltaX = cos(playerAngle) * 5;
-    playerDeltaY = sin(playerAngle) * 5;
-    
-    break;
-  case 'w':
-    playerX += playerDeltaX;
-    playerY += playerDeltaY;
-    break;
-  case 's':
-    playerX -= playerDeltaX;
-    playerY -= playerDeltaY;
-    break;
-  }
-  glutPostRedisplay();
-}
-
-void init() {
-  glClearColor(0.2, 0.2, 0.2, 0);
-  gluOrtho2D(0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, 0);
-  // set player pos
-  playerX = 400;
-  playerY = 300;
-  playerDeltaX = cos(playerAngle) * 5;
-  playerDeltaY = sin(playerAngle) * 5;
-}
-
-int main(int argc, char** argv) {
-  glutInit(&argc, argv);
-  glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
-  glutInitWindowSize(VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
-  glutCreateWindow("Raycaster");
-  init();
-  glutDisplayFunc(display);
-  glutKeyboardFunc(buttons);
-  glutMainLoop();
 }
