@@ -6,6 +6,7 @@
 #include "utils.h"
 #include "gfx.h"
 
+int fov = 360;
 int previousFrameStartTime = 0;
 float playerX, playerY, playerDeltaX, playerDeltaY, playerAngle;
 
@@ -67,11 +68,11 @@ void castRays() {
   int ray, mapXPos, mapYPos, mapArrPos, dof;
   float rayX = 0, rayY = 0, rayAngle = 0, xOffset = 0, yOffset = 0, distance = 0;
 
-  rayAngle = playerAngle - DEGREE * 30;
+  rayAngle = playerAngle - DEGREE * (fov / 2);
   if (rayAngle < 0) { rayAngle += (2 * PI); }
   if (rayAngle > (2 * PI)) { rayAngle -= (2 * PI); }
 
-  for (ray = 0; ray < 60; ray++) {
+  for (ray = 0; ray < fov; ray++) {
     // Horizontal Line Check
     dof = 0;
     float rayDistHor = 10000000;
@@ -184,21 +185,24 @@ void castRays() {
     glEnd();
 
     // draw 3d walls
-    float correctedAngle = rayAngle - playerAngle;
-    if (correctedAngle < 0) { correctedAngle += (2 * PI); }
-    if (correctedAngle > (2 * PI)) { correctedAngle -= (2 * PI); }
-    float correctedDistance = distance * cos(correctedAngle);
+    float relativeAngle = rayAngle - playerAngle;
+    if (relativeAngle < 0) { relativeAngle += (2 * PI); }
+    if (relativeAngle > (2 * PI)) { relativeAngle -= (2 * PI); }
+    float correctedDistance = distance * cos(relativeAngle);
 
-    float lineHeight = (mapSize * 320) / correctedDistance;
-    if (lineHeight > 320) { lineHeight = 320; }
-    float lineOffset = 160 - lineHeight / 2;
+    float lineHeight = (mapSize * VIEWPORT_HEIGHT) / correctedDistance;
+    if (lineHeight > VIEWPORT_HEIGHT) { lineHeight = VIEWPORT_HEIGHT; }
+    float lineOffset = (VIEWPORT_HEIGHT - lineHeight) / 2;
 
-    glLineWidth(8);
-    glBegin(GL_LINES);
-    glVertex2i(ray * 8 + 530, lineOffset);
-    glVertex2i(ray * 8 + 530, lineHeight + lineOffset);
+    float lineWidth = (float)VIEWPORT_WIDTH / fov;
+    glBegin(GL_QUADS);
+    glVertex2i(ray * lineWidth + 530, lineOffset);
+    glVertex2i(ray * lineWidth + 530 + lineWidth, lineOffset);
+    glVertex2i(ray * lineWidth + 530 + lineWidth, lineHeight + lineOffset);
+    glVertex2i(ray * lineWidth + 530, lineHeight + lineOffset);
     glEnd();
 
+    // rayAngle = math.deg(math.atan2(screenWidth/2 - (ray - 0.5), distToPlane)) + self.player.angle
     rayAngle += DEGREE;
     if (rayAngle < 0) { rayAngle += 2 * PI; }
     if (rayAngle > 2 * PI) { rayAngle -= 2 * PI; }

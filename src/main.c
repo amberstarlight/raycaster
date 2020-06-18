@@ -39,7 +39,7 @@ void buttons(unsigned char key, int x, int y) {
 
 void init() {
   glClearColor(0.2, 0.2, 0.2, 0);
-  gluOrtho2D(0, VIEWPORT_WIDTH, VIEWPORT_HEIGHT, 0);
+  gluOrtho2D(0, WINDOW_WIDTH, WINDOW_HEIGHT, 0);
   // set player pos
   playerAngle = 0;
   playerX = 400;
@@ -51,7 +51,7 @@ void init() {
 int main(int argc, char** argv) {
   glutInit(&argc, argv);
   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
-  glutInitWindowSize(VIEWPORT_WIDTH, VIEWPORT_HEIGHT);
+  glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
   glutCreateWindow("Raycaster");
   init();
   glutDisplayFunc(display);
