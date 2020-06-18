@@ -4,11 +4,7 @@ A raycaster engine written in C and OpenGL (FreeGLUT).
 
 ## Todo
 
-* Move glbegin and glend outside map drawing loop
-
 * Basic makefile
-
-* Make dynamic FOV
 
 * Implement mouse controls
 
@@ -20,8 +16,12 @@ A raycaster engine written in C and OpenGL (FreeGLUT).
 
 * Large map sizes
 
-* Dynamic resolutions
-
 * ~~Write an FPS counter (based on frametime)~~
 
 * ~~Refactor current file~~
+
+* ~~Move glbegin and glend outside map drawing loop~~
+
+* ~~Make dynamic FOV~~
+
+* ~~Dynamic resolutions~~

@@ -6,7 +6,7 @@
 #include "utils.h"
 #include "gfx.h"
 
-int fov = 360;
+int fov = 60;
 int previousFrameStartTime = 0;
 float playerX, playerY, playerDeltaX, playerDeltaY, playerAngle;
 
@@ -41,6 +41,7 @@ void drawPlayer() {
 }
 
 void drawMap2D() {
+  glBegin(GL_QUADS);
   int x, y, xOffset, yOffset;
 
   for (y = 0; y < mapY; y++) {
@@ -54,14 +55,13 @@ void drawMap2D() {
      xOffset = x * mapSize;
      yOffset = y * mapSize;
 
-     glBegin(GL_QUADS);
      glVertex2i(xOffset + 1, yOffset + 1);
      glVertex2i(xOffset + 1, yOffset + mapSize - 1);
      glVertex2i(xOffset + mapSize - 1, yOffset + mapSize - 1);
      glVertex2i(xOffset + mapSize - 1, yOffset + 1);
-     glEnd();
    }
-  }  
+  }
+  glEnd();
 }
 
 void castRays() {
@@ -147,8 +147,8 @@ void castRays() {
     }
 
     while (dof < 8) {
-      mapXPos = (int)(rayX)>>6;
-      mapYPos = (int)(rayY)>>6;
+      mapXPos = (int)(rayX) >> 6;
+      mapYPos = (int)(rayY) >> 6;
       mapArrPos = mapYPos * mapX + mapXPos;
 
       if (mapArrPos >= 0 && mapArrPos < (mapX * mapY) && map[mapArrPos] == 1) { // hit a vertical wall
@@ -195,14 +195,14 @@ void castRays() {
     float lineOffset = (VIEWPORT_HEIGHT - lineHeight) / 2;
 
     float lineWidth = (float)VIEWPORT_WIDTH / fov;
+    
     glBegin(GL_QUADS);
     glVertex2i(ray * lineWidth + 530, lineOffset);
-    glVertex2i(ray * lineWidth + 530 + lineWidth, lineOffset);
-    glVertex2i(ray * lineWidth + 530 + lineWidth, lineHeight + lineOffset);
+    glVertex2i(ray * lineWidth + 530 + lineWidth + 1, lineOffset);
+    glVertex2i(ray * lineWidth + 530 + lineWidth + 1, lineHeight + lineOffset);
     glVertex2i(ray * lineWidth + 530, lineHeight + lineOffset);
     glEnd();
 
-    // rayAngle = math.deg(math.atan2(screenWidth/2 - (ray - 0.5), distToPlane)) + self.player.angle
     rayAngle += DEGREE;
     if (rayAngle < 0) { rayAngle += 2 * PI; }
     if (rayAngle > 2 * PI) { rayAngle -= 2 * PI; }
@@ -220,5 +220,4 @@ void display() {
   drawPlayer();
   frameTime(deltaTime);
   glutSwapBuffers(); // swaps our buffers around
- 
 }
