@@ -1,7 +1,8 @@
 #pragma once
 
 #define PI 3.14159265358979323846
-#define DEGREE ((2 * PI)/360) // one degree in radians
+#define TAU 6.28318530718 // 2 pi
+#define DEGREE 0.0174532925199 // one degree in radians
 #define ROUND_TO_MULTIPLE_OF_64(x) (((int)x >> 6) << 6)
 #define WINDOW_WIDTH 1200
 #define WINDOW_HEIGHT 512

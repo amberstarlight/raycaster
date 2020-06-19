@@ -34,7 +34,6 @@ void buttons(unsigned char key, int x, int y) {
     playerY -= playerDeltaY;
     break;
   }
-  glutPostRedisplay();
 }
 
 void init() {
@@ -48,13 +47,18 @@ void init() {
   playerDeltaY = sin(playerAngle) * 5;
 }
 
+void mainLoop() {
+  glutPostRedisplay();
+}
+
 int main(int argc, char** argv) {
   glutInit(&argc, argv);
   glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
   glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
   glutCreateWindow("Raycaster");
   init();
-  glutDisplayFunc(display);
-  glutKeyboardFunc(buttons);
+  glutDisplayFunc(display); // runs when we tell glut to redraw window
+  glutKeyboardFunc(buttons); // trigger every time keyboard event happens
+  glutIdleFunc(mainLoop); // runs as fast as possible
   glutMainLoop();
 }

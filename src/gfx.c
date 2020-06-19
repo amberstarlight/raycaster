@@ -69,8 +69,8 @@ void castRays() {
   float rayX = 0, rayY = 0, rayAngle = 0, xOffset = 0, yOffset = 0, distance = 0;
 
   rayAngle = playerAngle - DEGREE * (fov / 2);
-  if (rayAngle < 0) { rayAngle += (2 * PI); }
-  if (rayAngle > (2 * PI)) { rayAngle -= (2 * PI); }
+  if (rayAngle < 0) { rayAngle += TAU; }
+  if (rayAngle > TAU) { rayAngle -= TAU; }
 
   for (ray = 0; ray < fov; ray++) {
     // Horizontal Line Check
@@ -186,8 +186,8 @@ void castRays() {
 
     // draw 3d walls
     float relativeAngle = rayAngle - playerAngle;
-    if (relativeAngle < 0) { relativeAngle += (2 * PI); }
-    if (relativeAngle > (2 * PI)) { relativeAngle -= (2 * PI); }
+    // if (relativeAngle < 0) { relativeAngle += TAU; }
+    // if (relativeAngle > TAU) { relativeAngle -= TAU; }
     float correctedDistance = distance * cos(relativeAngle);
 
     float lineHeight = (mapSize * VIEWPORT_HEIGHT) / correctedDistance;
@@ -204,8 +204,8 @@ void castRays() {
     glEnd();
 
     rayAngle += DEGREE;
-    if (rayAngle < 0) { rayAngle += 2 * PI; }
-    if (rayAngle > 2 * PI) { rayAngle -= 2 * PI; }
+    if (rayAngle < 0) { rayAngle += TAU; }
+    if (rayAngle > TAU) { rayAngle -= TAU; }
   }
 }
 
