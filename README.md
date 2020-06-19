@@ -1,6 +1,6 @@
 # Raycaster
 
-A raycaster engine written in C and OpenGL (FreeGLUT).
+A raycaster engine written in C and OpenGL (GLFW).
 
 ## Todo
 
@@ -15,13 +15,3 @@ A raycaster engine written in C and OpenGL (FreeGLUT).
 * Loading maps dynamically
 
 * Large map sizes
-
-* ~~Write an FPS counter (based on frametime)~~
-
-* ~~Refactor current file~~
-
-* ~~Move glbegin and glend outside map drawing loop~~
-
-* ~~Make dynamic FOV~~
-
-* ~~Dynamic resolutions~~

@@ -1,40 +1,54 @@
-// gcc -lglut -lGLU -lGL -lm -Iinclude src/*.c
+// gcc -lglfw -lGLU -lGL -lm -Iinclude src/*.c
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <GL/glut.h>
-#include <GL/freeglut.h>
 #include <math.h>
 #include <time.h>
+
+#define GLFW_INCLUDE_GLU
+#include <GLFW/glfw3.h>
 
 #include "utils.h"
 #include "gfx.h"
 
-void buttons(unsigned char key, int x, int y) {
-  switch (key) {
-  case 'd':
-    playerAngle += 0.1;
-    if (playerAngle > 2 * PI) { playerAngle -= 2 * PI; } // 2 * pi = 360Degrees 
-    playerDeltaX = cos(playerAngle) * 5;
-    playerDeltaY = sin(playerAngle) * 5;
-    break;
-  case 'a':
-    playerAngle -= 0.1;
-    if (playerAngle < 0) { playerAngle += 2 * PI; }
-    playerDeltaX = cos(playerAngle) * 5;
-    playerDeltaY = sin(playerAngle) * 5;
-    
-    break;
-  case 'w':
+#define PLAYER_SPEED 1
+#define ANGLE_STEP 0.02
+
+void errorCallback(int error, const char* description) {
+  fputs(description, stderr);
+}
+
+static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+  if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS)
+    glfwSetWindowShouldClose(window, GL_TRUE);
+}
+
+void movement(GLFWwindow* window) {
+  if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
     playerX += playerDeltaX;
     playerY += playerDeltaY;
-    break;
-  case 's':
+  }
+
+  if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
     playerX -= playerDeltaX;
     playerY -= playerDeltaY;
-    break;
+  }
+
+  if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
+    playerAngle -= ANGLE_STEP;
+    if (playerAngle < 0) { playerAngle += TAU; }
+    playerDeltaX = cos(playerAngle) * PLAYER_SPEED;
+    playerDeltaY = sin(playerAngle) * PLAYER_SPEED;
+  }
+
+  if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
+    playerAngle += ANGLE_STEP;
+    if (playerAngle > TAU) { playerAngle -= TAU; }
+    playerDeltaX = cos(playerAngle) * PLAYER_SPEED;
+    playerDeltaY = sin(playerAngle) * PLAYER_SPEED;
   }
 }
+
 
 void init() {
   glClearColor(0.2, 0.2, 0.2, 0);
@@ -43,22 +57,38 @@ void init() {
   playerAngle = 0;
   playerX = 400;
   playerY = 300;
-  playerDeltaX = cos(playerAngle) * 5;
-  playerDeltaY = sin(playerAngle) * 5;
-}
-
-void mainLoop() {
-  glutPostRedisplay();
+  playerDeltaX = cos(playerAngle) * PLAYER_SPEED;
+  playerDeltaY = sin(playerAngle) * PLAYER_SPEED;
 }
 
 int main(int argc, char** argv) {
-  glutInit(&argc, argv);
-  glutInitDisplayMode(GLUT_DOUBLE | GLUT_RGBA);
-  glutInitWindowSize(WINDOW_WIDTH, WINDOW_HEIGHT);
-  glutCreateWindow("Raycaster");
+  glfwInit();
+  
+  if (!glfwInit())
+    exit(EXIT_FAILURE);
+
+  glfwSetErrorCallback(errorCallback);
+
+  GLFWwindow* window = glfwCreateWindow(WINDOW_WIDTH, WINDOW_HEIGHT, "Raycaster", NULL, NULL);
+
+  if (!window) {
+    glfwTerminate();
+    exit(EXIT_FAILURE);
+  }
+
+  glfwMakeContextCurrent(window);
+
+  glfwSetKeyCallback(window, keyCallback);
+
   init();
-  glutDisplayFunc(display); // runs when we tell glut to redraw window
-  glutKeyboardFunc(buttons); // trigger every time keyboard event happens
-  glutIdleFunc(mainLoop); // runs as fast as possible
-  glutMainLoop();
+
+  while (!glfwWindowShouldClose(window)) {
+    movement(window);
+    display(window);
+    glfwPollEvents();
+  }
+
+  glfwDestroyWindow(window);
+  glfwTerminate();
+  exit(EXIT_SUCCESS);
 }

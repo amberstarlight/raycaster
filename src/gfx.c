@@ -1,10 +1,12 @@
 #include <stdio.h>
 #include <math.h>
-#include <GL/glut.h>
-#include <GL/freeglut.h>
+#define GLFW_INCLUDE_GLU
+#include <GLFW/glfw3.h>
 
 #include "utils.h"
 #include "gfx.h"
+
+#define MAX_DOF 16
 
 int fov = 60;
 int previousFrameStartTime = 0;
@@ -12,18 +14,34 @@ float playerX, playerY, playerDeltaX, playerDeltaY, playerAngle;
 
 // Map
 const int mapX = 8,
-          mapY = 8,
-          mapSize = mapX * mapY;
+          mapY = 8*3,
+          mapSize = 8*8;
 
 int map[] = {
   1,1,1,1,1,1,1,1,
-  1,0,1,0,0,0,0,1,
-  1,0,1,0,0,0,0,1,
-  1,0,1,0,0,0,0,1,
   1,0,0,0,0,0,0,1,
-  1,0,0,0,0,1,0,1,
+  1,0,1,0,0,1,0,1,
   1,0,0,0,0,0,0,1,
-  1,1,1,1,1,1,1,1,
+  1,0,1,0,0,1,0,1,
+  1,0,0,1,1,0,0,1,
+  1,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,1,
+  1,0,1,0,1,0,1,1,
+  1,0,0,0,0,0,0,1,
+  1,1,0,1,0,1,0,1,
+  1,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,1,
+  1,1,1,1,1,0,1,1,
+  1,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,1,
+  1,1,1,1,1,1,1,1
 };
 
 void drawPlayer() {
@@ -99,10 +117,10 @@ void castRays() {
     if (rayAngle == 0 || rayAngle == PI) { // ray directly left or right
       rayX = playerX;
       rayY = playerY;
-      dof = 8;
+      dof = MAX_DOF;
     }
 
-    while (dof < 8) {
+    while (dof < MAX_DOF) {
       mapXPos = (int)(rayX) >> 6;
       mapYPos = (int)(rayY) >> 6;
       mapArrPos = mapYPos * mapX + mapXPos;
@@ -111,7 +129,7 @@ void castRays() {
         horRayX = rayX;
         horRayY = rayY;
         rayDistHor = length(playerX, playerY, horRayX, horRayY);
-        dof = 8;
+        dof = MAX_DOF;
       } else {
         rayX += xOffset;
         rayY += yOffset;
@@ -143,10 +161,10 @@ void castRays() {
     if (rayAngle == 0 || rayAngle == PI) { // ray directly up or down
       rayX = playerX;
       rayY = playerY;
-      dof = 8;
+      dof = MAX_DOF;
     }
 
-    while (dof < 8) {
+    while (dof < MAX_DOF) {
       mapXPos = (int)(rayX) >> 6;
       mapYPos = (int)(rayY) >> 6;
       mapArrPos = mapYPos * mapX + mapXPos;
@@ -155,7 +173,7 @@ void castRays() {
         vertRayX = rayX;
         vertRayY = rayY;
         rayDistVer = length(playerX, playerY, vertRayX, vertRayY);
-        dof = 8;
+        dof = MAX_DOF;
       } else {
         rayX += xOffset;
         rayY += yOffset;
@@ -209,8 +227,8 @@ void castRays() {
   }
 }
 
-void display() {
-  int frameStartTime = glutGet(GLUT_ELAPSED_TIME);
+void display(GLFWwindow* window) {
+  int frameStartTime = glfwGetTime();
   int deltaTime = frameStartTime - previousFrameStartTime;
   previousFrameStartTime = frameStartTime;
 
@@ -219,5 +237,5 @@ void display() {
   castRays();
   drawPlayer();
   frameTime(deltaTime);
-  glutSwapBuffers(); // swaps our buffers around
+  glfwSwapBuffers(window); // swaps our buffers around
 }
