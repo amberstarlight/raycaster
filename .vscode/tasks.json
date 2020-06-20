@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "shell",
+      "label": "gcc build project",
+      "command": "/usr/bin/gcc",
+      "args": ["-g", "-lglfw", "-lGLU", "-lGL", "-lm", "-Iinclude", "src/*.c"],
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "problemMatcher": ["$gcc"],
+      "group": {
+        "kind": "build",
+        "isDefault": true
+      }
+    }
+  ]
+}

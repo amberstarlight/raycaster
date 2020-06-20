@@ -6,24 +6,20 @@
 #include "utils.h"
 #include "gfx.h"
 
-#define MAX_DOF 16
-
-int fov = 100;
 int previousFrameStartTime = 0;
-float playerX, playerY, playerDeltaX, playerDeltaY, playerAngle;
+float playerX, playerY, playerDirX, playerDirY, planeX, planeY;
 
 // Map
-const int mapX = 8,
-          mapY = 8*3,
-          mapSize = 8*8;
+const int mapWidth = 8,
+          mapHeight = 8*3;
 
 int map[] = {
   1,1,1,1,1,1,1,1,
   1,0,0,0,0,0,0,1,
-  1,0,2,0,0,2,0,1,
   1,0,0,0,0,0,0,1,
-  1,0,1,0,0,2,0,1,
-  1,0,0,2,3,0,0,1,
+  1,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,1,
   1,0,0,0,0,0,0,1,
   1,0,0,0,0,0,0,1,
   1,0,0,0,0,0,0,1,
@@ -44,223 +40,131 @@ int map[] = {
   1,1,1,1,1,1,1,1
 };
 
-void drawPlayer() {
-  glColor3f(0, 1, 0);
-  glPointSize(8);
-  glBegin(GL_POINTS);
-  glVertex2i(playerX, playerY);
-  glEnd();
-
-  glLineWidth(3);
-  glBegin(GL_LINES);
-  glVertex2i(playerX, playerY);
-  glVertex2i(playerX + playerDeltaX * 5, playerY + playerDeltaY * 5);
-  glEnd();
-}
-
 void drawMap2D() {
+  int scale = 10;
+  float playerSize = 0.25;
+
   glBegin(GL_QUADS);
-  int x, y, xOffset, yOffset;
+  for (int y = 0; y < mapHeight; y++) {
+    for (int x = 0; x < mapWidth; x++) {
+      if (map[(y * mapWidth) + x] > 0) {
+        glColor3f(1, 1, 1);
+      } else {
+        glColor3f(0, 0, 0);
+      }
 
-  for (y = 0; y < mapY; y++) {
-   for (x = 0; x < mapX; x++) {
-     if (map[y*mapX+x] > 0) {
-       glColor3f(1, 1, 1);
-     } else {
-       glColor3f(0, 0, 0);
-     }
+      int scaledX = x * scale;
+      int scaledY =  y * scale;
 
-     xOffset = x * mapSize;
-     yOffset = y * mapSize;
-
-     glVertex2i(xOffset + 1, yOffset + 1);
-     glVertex2i(xOffset + 1, yOffset + mapSize - 1);
-     glVertex2i(xOffset + mapSize - 1, yOffset + mapSize - 1);
-     glVertex2i(xOffset + mapSize - 1, yOffset + 1);
-   }
+      glVertex2i(scaledX, scaledY);
+      glVertex2i(scaledX + scale, scaledY);
+      glVertex2i(scaledX + scale, scaledY + scale);
+      glVertex2i(scaledX, scaledY + scale);
+    }
   }
+  glEnd();
+
+  glColor3f(0, 1, 0);
+  glPointSize(playerSize * scale);
+  glBegin(GL_POINTS);
+  glVertex2i(playerX*scale, playerY*scale);
+  glEnd();
+
+  glBegin(GL_LINES);
+  glLineWidth(4);
+  glVertex2i(playerX * scale,playerY * scale);
+  glVertex2i((playerX + playerDirX) * scale, (playerY + playerDirY) * scale);
   glEnd();
 }
 
 void castRays() {
-  int ray, mapXPos, mapYPos, mapArrPos, dof;
-  float tileR = 0;
-  float tileG = 0;
-  float tileB = 0;
+  for (int x = 0; x < VIEWPORT_WIDTH; x++) {
+    // calculate ray position and direction
+    float cameraX = (2 * (x / (float) mapWidth)) - 1; // x-coordinate in camera space mapped from -1 to 1
 
-  float colourMod = 0.25;
-  float rayX = 0, rayY = 0, rayAngle = 0, xOffset = 0, yOffset = 0, distance = 0;
-  int horizontalWall = 0;
-  int verticalWall = 0;
+    float rayDirX = playerDirX + (planeX * cameraX), // ray vector
+          rayDirY = playerDirY + (planeY * cameraX);
+    
+    int currentTileX = (int) playerX, // the tile the player is standing in (x-coordinate)
+        currentTileY = (int) playerY; // the tile the player is standing in (y-coordinate)
 
-  rayAngle = playerAngle - DEGREE * (fov / 2);
-  if (rayAngle < 0) { rayAngle += TAU; }
-  if (rayAngle > TAU) { rayAngle -= TAU; }
+    float sideDistX, // distance from player to next vertical edge
+          sideDistY; // distance from player to next horizontal edge
 
-  for (ray = 0; ray < fov; ray++) {
-    // Horizontal Line Check
-    dof = 0;
-    float rayDistHor = 10000000;
-    float horRayX = playerX;
-    float horRayY = playerY;
-    float aTan = -1/tan(rayAngle); // inverse tangent
+    float deltaDistX = fabsf(1.f / rayDirX), // delta between horizontal edges
+          deltaDistY = fabsf(1.f / rayDirY), // delta between vertical edges
+          perpWallDist; // length between camera plane and wall
+    
+    // what direction to step in x or y-direction (either +1 or -1)
+    int stepX;
+    int stepY;
 
-    if (rayAngle > PI) { // ray looking up
-      rayY = ROUND_TO_MULTIPLE_OF_64(playerY) - 0.0001; // round to nearest multiple of 64 (and subtract for accuracy)
-                                                        // each tile is 64x64, and we subtract a small amount to ensure that
-                                                        // we don't clip the boundary of the tile and get graphical errors
-      rayX = (playerY - rayY) * aTan + playerX;
-      yOffset = -64;
-      xOffset = -yOffset * aTan;
+    int hit = 0;  // was there a wall hit?
+    int side;     // was a Vertical or a Horizontal wall hit?
+
+    if (rayDirX < 0) {
+      stepX = -1;
+      sideDistX = (playerX - currentTileX) * deltaDistX;
+    } else {
+      stepX = 1;
+      sideDistX = (currentTileX + 1.0 - playerX) * deltaDistX;
     }
 
-    if (rayAngle < PI) { // ray looking down
-      rayY = ROUND_TO_MULTIPLE_OF_64(playerY) + 64;
-      rayX = (playerY - rayY) * aTan + playerX;
-      yOffset = 64;
-      xOffset = -yOffset * aTan;
+    if (rayDirY < 0) {
+      stepY = -1;
+      sideDistY = (playerY - currentTileY) * deltaDistY;
+    } else {
+      stepY = 1;
+      sideDistY = (currentTileY + 1.0 - playerY) * deltaDistY;
     }
 
-    if (rayAngle == 0 || rayAngle == PI) { // ray directly left or right
-      rayX = playerX;
-      rayY = playerY;
-      dof = MAX_DOF;
-    }
-
-    while (dof < MAX_DOF) {
-      mapXPos = (int)(rayX) >> 6;
-      mapYPos = (int)(rayY) >> 6;
-      mapArrPos = mapYPos * mapX + mapXPos;
-
-      if (mapArrPos >= 0 && mapArrPos < (mapX * mapY) && map[mapArrPos] > 0) { // hit a horizontal wall
-        horRayX = rayX;
-        horRayY = rayY;
-        rayDistHor = length(playerX, playerY, horRayX, horRayY);
-        dof = MAX_DOF;
-        horizontalWall = mapArrPos;
+    // DDA algorithm
+    while (!hit) {
+      if (sideDistX < sideDistY) {
+        sideDistX += deltaDistX;
+        currentTileX += stepX;
+        side = 0;
       } else {
-        rayX += xOffset;
-        rayY += yOffset;
-        dof += 1; // next line
+        sideDistY += deltaDistY;
+        currentTileY += stepY;
+        side = 1;
       }
-    }
 
-    // Vertical Line Check
-    dof = 0;
-    float rayDistVer = 1000000;
-    float vertRayX = playerX;
-    float vertRayY = playerY;
-    float nTan = -tan(rayAngle);
-
-    if ((rayAngle > (PI / 2)) && (rayAngle < (3*PI/2))) { // ray looking left
-      rayX = (((int)playerX >> 6) << 6) - 0.0001;
-      rayY = (playerX - rayX) * nTan + playerY;
-      xOffset = -64;
-      yOffset = -xOffset * nTan;
-    }
-
-    if ((rayAngle < (PI / 2)) || (rayAngle > (3*PI/2))) { // ray looking right
-      rayX = (((int)playerX >> 6) << 6) + 64;
-      rayY = (playerX - rayX) * nTan + playerY;
-      xOffset = 64;
-      yOffset = -xOffset * nTan;
-    }
-
-    if (rayAngle == 0 || rayAngle == PI) { // ray directly up or down
-      rayX = playerX;
-      rayY = playerY;
-      dof = MAX_DOF;
-    }
-
-    while (dof < MAX_DOF) {
-      mapXPos = (int)(rayX) >> 6;
-      mapYPos = (int)(rayY) >> 6;
-      mapArrPos = mapYPos * mapX + mapXPos;
-
-      if (mapArrPos >= 0 && mapArrPos < (mapX * mapY) && map[mapArrPos] > 0) { // hit a vertical wall
-        vertRayX = rayX;
-        vertRayY = rayY;
-        rayDistVer = length(playerX, playerY, vertRayX, vertRayY);
-        dof = MAX_DOF;
-        verticalWall = mapArrPos;
-      } else {
-        rayX += xOffset;
-        rayY += yOffset;
-        dof += 1; // next line
-      }
+      if (map[(currentTileY * mapWidth) + currentTileX] > 0) hit = 1;
     }
     
-    int tileType = 0;
-    if (rayDistVer > rayDistHor) { tileType = map[horizontalWall]; } // if drawing horizontal wall
-    if (rayDistVer < rayDistHor) { tileType = map[verticalWall]; } // if drawing horizontal wall
+    // Calculate distance projected on camera direction
+    if (!side) {
+      perpWallDist = (currentTileX - playerX  + (1 - stepX) / 2) / rayDirX;
+    } else {
+      perpWallDist = (currentTileY - playerY  + (1 - stepY) / 2) / rayDirY;
+    }
     
-    switch (tileType) {
-      case 1:
-        tileR = 1.0;
-        tileG = 0.0;
-        tileB = 0.5;
-        break;
+    // Calculate line height to draw
+    int lineHeight = (int)(VIEWPORT_HEIGHT / perpWallDist);
 
-      case 2:
-        tileR = 0.69;
-        tileG = 1.0;
-        tileB = 0.2;
-        break;
+    // Calculate start and end points for line drawing
+    int lineStart = -(lineHeight / 2) + (VIEWPORT_HEIGHT / 2);
+    if (lineStart < 0) lineStart = 0;
+    int lineEnd = (lineHeight / 2) + (VIEWPORT_HEIGHT / 2);
+    if (lineEnd >= VIEWPORT_HEIGHT) lineEnd = VIEWPORT_HEIGHT - 1;
 
-      case 3:
-        tileR = 1.0;
-        tileG = 1.0;
-        tileB = 1.0;
-        break;
-    }
 
-    if (rayDistVer < rayDistHor) {
-      rayX = vertRayX;
-      rayY = vertRayY;
-      distance = rayDistVer;
-      float rMod = tileR - colourMod;
-      float gMod = tileG - colourMod;
-      float bMod = tileB - colourMod;
-      if (rMod < 0) {rMod = 0;}
-      if (gMod < 0) {gMod = 0;}
-      if (bMod < 0) {bMod = 0;}
-      glColor3f(rMod, gMod, bMod);
-    }
-
-    if (rayDistHor < rayDistVer) {
-      rayX = horRayX;
-      rayY = horRayY;
-      distance = rayDistHor;
-      glColor3f(tileR, tileG, tileB);
-    }
-
-    // draw rays
-    glLineWidth(1);
     glBegin(GL_LINES);
-    glVertex2i(playerX, playerY);
-    glVertex2i(rayX, rayY);
+    switch (map[(currentTileY * mapWidth) + currentTileX]) {
+    case 1:
+      glColor3f(1.0, 1.0, 1.0);
+      break;
+    case 2:
+      glColor3f(0.5, 0.5, 0.5);
+      break;
+    default:
+      glColor3f(0.7, 0.0, 0.65);
+      break;
+    }
+    glVertex2i(x,lineStart);
+    glVertex2i(x,lineEnd);
     glEnd();
-
-    // draw 3d walls
-    float relativeAngle = rayAngle - playerAngle;
-    float correctedDistance = distance * cos(relativeAngle);
-
-    float lineHeight = (mapSize * VIEWPORT_HEIGHT) / correctedDistance;
-    if (lineHeight > VIEWPORT_HEIGHT) { lineHeight = VIEWPORT_HEIGHT; }
-    float lineOffset = (VIEWPORT_HEIGHT - lineHeight) / 2;
-
-    float lineWidth = (float)VIEWPORT_WIDTH / fov;
-    
-    glBegin(GL_QUADS);
-    glVertex2i(ray * lineWidth + 530, lineOffset);
-    glVertex2i(ray * lineWidth + 530 + lineWidth + 1, lineOffset);
-    glVertex2i(ray * lineWidth + 530 + lineWidth + 1, lineHeight + lineOffset);
-    glVertex2i(ray * lineWidth + 530, lineHeight + lineOffset);
-    glEnd();
-
-    rayAngle += DEGREE;
-    if (rayAngle < 0) { rayAngle += TAU; }
-    if (rayAngle > TAU) { rayAngle -= TAU; }
   }
 }
 
@@ -270,9 +174,10 @@ void display(GLFWwindow* window) {
   previousFrameStartTime = frameStartTime;
 
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  drawMap2D();
+  
   castRays();
-  drawPlayer();
+  
+  drawMap2D();
   frameTime(deltaTime);
   glfwSwapBuffers(window); // swaps our buffers around
 }

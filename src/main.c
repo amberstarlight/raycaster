@@ -11,8 +11,8 @@
 #include "utils.h"
 #include "gfx.h"
 
-#define PLAYER_SPEED 0.75
-#define ANGLE_STEP 0.001
+#define PLAYER_SPEED 0.01
+#define ROTATION_ANGLE 0.1
 
 void errorCallback(int error, const char* description) {
   fputs(description, stderr);
@@ -29,23 +29,23 @@ static void mousePosCallback(GLFWwindow* window, double xPos, double yPos) {
 
 void movement(GLFWwindow* window) {
   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-    playerX += (playerDeltaX * PLAYER_SPEED);
-    playerY += (playerDeltaY * PLAYER_SPEED);
+    playerX += (playerDirX * PLAYER_SPEED);
+    playerY += (playerDirY * PLAYER_SPEED);
   }
 
   if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-    playerX -= (playerDeltaX * PLAYER_SPEED);
-    playerY -= (playerDeltaY * PLAYER_SPEED);
+    playerX -= (playerDirX * PLAYER_SPEED);
+    playerY -= (playerDirY * PLAYER_SPEED);
   }
 
   if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-    playerX += (playerDeltaY * PLAYER_SPEED);
-    playerY -= (playerDeltaX * PLAYER_SPEED);
+    playerX += (playerDirY * PLAYER_SPEED);
+    playerY -= (playerDirX * PLAYER_SPEED);
   }
 
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-    playerX -= (playerDeltaY * PLAYER_SPEED);
-    playerY += (playerDeltaX * PLAYER_SPEED);
+    playerX -= (playerDirY * PLAYER_SPEED);
+    playerY += (playerDirX * PLAYER_SPEED);
   }
 }
 
@@ -55,10 +55,25 @@ void mouseLook(GLFWwindow* window) {
   glfwGetCursorPos(window, &mouseX, &mouseY);
 
   if (!(mouseX == prevMouseX)) {
-    playerAngle -= ((prevMouseX - mouseX) * ANGLE_STEP);
-    if (playerAngle > TAU) { playerAngle -= TAU; }
-    playerDeltaX = cos(playerAngle) * PLAYER_SPEED;
-    playerDeltaY = sin(playerAngle) * PLAYER_SPEED;
+    if(prevMouseX < mouseX) {
+      // left
+      float prevPlayerDirX = playerDirX;
+      playerDirX = playerDirX * cos(ROTATION_ANGLE) - playerDirY * sin(ROTATION_ANGLE);
+      playerDirY = prevPlayerDirX * sin(ROTATION_ANGLE) + playerDirY * cos(ROTATION_ANGLE);
+
+      float prevPlaneX = planeX;
+      planeX = planeX * cos(ROTATION_ANGLE) - planeY * sin(ROTATION_ANGLE);
+      planeY = prevPlaneX * sin(ROTATION_ANGLE) + planeY * cos(ROTATION_ANGLE);
+    } else {
+      // right
+      float prevPlayerDirX = playerDirX;
+      playerDirX = playerDirX * cos(-ROTATION_ANGLE) - playerDirY * sin(-ROTATION_ANGLE);
+      playerDirY = prevPlayerDirX * sin(-ROTATION_ANGLE) + playerDirY * cos(-ROTATION_ANGLE);
+
+      float prevPlaneX = planeX;
+      planeX = planeX * cos(-ROTATION_ANGLE) - planeY * sin(-ROTATION_ANGLE);
+      planeY = prevPlaneX * sin(-ROTATION_ANGLE) + planeY * cos(-ROTATION_ANGLE);
+    }
   }
 
   prevMouseX = mouseX;
@@ -69,11 +84,12 @@ void init() {
   glClearColor(0.2, 0.2, 0.2, 0);
   gluOrtho2D(0, WINDOW_WIDTH, WINDOW_HEIGHT, 0);
   // set player pos
-  playerAngle = 0;
-  playerX = 400;
-  playerY = 300;
-  playerDeltaX = cos(playerAngle) * PLAYER_SPEED;
-  playerDeltaY = sin(playerAngle) * PLAYER_SPEED;
+  playerX = 4;
+  playerY = 4;
+  playerDirX = -1;
+  playerDirY = 0;
+  planeX = 0;
+  planeY = 0.66;
 }
 
 int main(int argc, char** argv) {
