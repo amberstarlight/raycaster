@@ -11,8 +11,8 @@
 #include "utils.h"
 #include "gfx.h"
 
-#define PLAYER_SPEED 1
-#define ANGLE_STEP 0.02
+#define PLAYER_SPEED 0.75
+#define ANGLE_STEP 0.001
 
 void errorCallback(int error, const char* description) {
   fputs(description, stderr);
@@ -23,30 +23,46 @@ static void keyCallback(GLFWwindow* window, int key, int scancode, int action, i
     glfwSetWindowShouldClose(window, GL_TRUE);
 }
 
+static void mousePosCallback(GLFWwindow* window, double xPos, double yPos) {
+
+}
+
 void movement(GLFWwindow* window) {
   if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS) {
-    playerX += playerDeltaX;
-    playerY += playerDeltaY;
+    playerX += (playerDeltaX * PLAYER_SPEED);
+    playerY += (playerDeltaY * PLAYER_SPEED);
   }
 
   if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS) {
-    playerX -= playerDeltaX;
-    playerY -= playerDeltaY;
+    playerX -= (playerDeltaX * PLAYER_SPEED);
+    playerY -= (playerDeltaY * PLAYER_SPEED);
   }
 
   if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS) {
-    playerAngle -= ANGLE_STEP;
-    if (playerAngle < 0) { playerAngle += TAU; }
-    playerDeltaX = cos(playerAngle) * PLAYER_SPEED;
-    playerDeltaY = sin(playerAngle) * PLAYER_SPEED;
+    playerX += (playerDeltaY * PLAYER_SPEED);
+    playerY -= (playerDeltaX * PLAYER_SPEED);
   }
 
   if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS) {
-    playerAngle += ANGLE_STEP;
+    playerX -= (playerDeltaY * PLAYER_SPEED);
+    playerY += (playerDeltaX * PLAYER_SPEED);
+  }
+}
+
+void mouseLook(GLFWwindow* window) {
+  double mouseX, mouseY;
+  static double prevMouseX, prevMouseY;
+  glfwGetCursorPos(window, &mouseX, &mouseY);
+
+  if (!(mouseX == prevMouseX)) {
+    playerAngle -= ((prevMouseX - mouseX) * ANGLE_STEP);
     if (playerAngle > TAU) { playerAngle -= TAU; }
     playerDeltaX = cos(playerAngle) * PLAYER_SPEED;
     playerDeltaY = sin(playerAngle) * PLAYER_SPEED;
   }
+
+  prevMouseX = mouseX;
+  prevMouseY = mouseY;
 }
 
 
@@ -79,10 +95,17 @@ int main(int argc, char** argv) {
   glfwMakeContextCurrent(window);
 
   glfwSetKeyCallback(window, keyCallback);
+  glfwSetCursorPosCallback(window, mousePosCallback);
+
+  glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+
+  if (glfwRawMouseMotionSupported())
+    glfwSetInputMode(window, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
 
   init();
 
   while (!glfwWindowShouldClose(window)) {
+    mouseLook(window);
     movement(window);
     display(window);
     glfwPollEvents();
