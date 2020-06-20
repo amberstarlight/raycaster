@@ -8,7 +8,7 @@
 
 #define MAX_DOF 16
 
-int fov = 60;
+int fov = 100;
 int previousFrameStartTime = 0;
 float playerX, playerY, playerDeltaX, playerDeltaY, playerAngle;
 
@@ -20,25 +20,25 @@ const int mapX = 8,
 int map[] = {
   1,1,1,1,1,1,1,1,
   1,0,0,0,0,0,0,1,
-  1,0,1,0,0,1,0,1,
+  1,0,2,0,0,2,0,1,
   1,0,0,0,0,0,0,1,
-  1,0,1,0,0,1,0,1,
-  1,0,0,1,1,0,0,1,
-  1,0,0,0,0,0,0,1,
-  1,0,0,0,0,0,0,1,
+  1,0,1,0,0,2,0,1,
+  1,0,0,2,3,0,0,1,
   1,0,0,0,0,0,0,1,
   1,0,0,0,0,0,0,1,
-  1,0,1,0,1,0,1,1,
-  1,0,0,0,0,0,0,1,
-  1,1,0,1,0,1,0,1,
   1,0,0,0,0,0,0,1,
   1,0,0,0,0,0,0,1,
+  1,0,2,0,3,0,1,1,
+  1,0,0,0,0,0,0,1,
+  1,2,0,3,0,1,0,1,
   1,0,0,0,0,0,0,1,
   1,0,0,0,0,0,0,1,
   1,0,0,0,0,0,0,1,
   1,0,0,0,0,0,0,1,
   1,0,0,0,0,0,0,1,
-  1,1,1,1,1,0,1,1,
+  1,0,0,0,0,0,0,1,
+  1,0,0,0,0,0,0,1,
+  1,1,1,1,2,0,1,1,
   1,0,0,0,0,0,0,1,
   1,0,0,0,0,0,0,1,
   1,1,1,1,1,1,1,1
@@ -64,7 +64,7 @@ void drawMap2D() {
 
   for (y = 0; y < mapY; y++) {
    for (x = 0; x < mapX; x++) {
-     if (map[y*mapX+x] == 1) {
+     if (map[y*mapX+x] > 0) {
        glColor3f(1, 1, 1);
      } else {
        glColor3f(0, 0, 0);
@@ -84,7 +84,14 @@ void drawMap2D() {
 
 void castRays() {
   int ray, mapXPos, mapYPos, mapArrPos, dof;
+  float tileR = 0;
+  float tileG = 0;
+  float tileB = 0;
+
+  float colourMod = 0.25;
   float rayX = 0, rayY = 0, rayAngle = 0, xOffset = 0, yOffset = 0, distance = 0;
+  int horizontalWall = 0;
+  int verticalWall = 0;
 
   rayAngle = playerAngle - DEGREE * (fov / 2);
   if (rayAngle < 0) { rayAngle += TAU; }
@@ -125,11 +132,12 @@ void castRays() {
       mapYPos = (int)(rayY) >> 6;
       mapArrPos = mapYPos * mapX + mapXPos;
 
-      if (mapArrPos >= 0 && mapArrPos < (mapX * mapY) && map[mapArrPos] == 1) { // hit a horizontal wall
+      if (mapArrPos >= 0 && mapArrPos < (mapX * mapY) && map[mapArrPos] > 0) { // hit a horizontal wall
         horRayX = rayX;
         horRayY = rayY;
         rayDistHor = length(playerX, playerY, horRayX, horRayY);
         dof = MAX_DOF;
+        horizontalWall = mapArrPos;
       } else {
         rayX += xOffset;
         rayY += yOffset;
@@ -169,30 +177,61 @@ void castRays() {
       mapYPos = (int)(rayY) >> 6;
       mapArrPos = mapYPos * mapX + mapXPos;
 
-      if (mapArrPos >= 0 && mapArrPos < (mapX * mapY) && map[mapArrPos] == 1) { // hit a vertical wall
+      if (mapArrPos >= 0 && mapArrPos < (mapX * mapY) && map[mapArrPos] > 0) { // hit a vertical wall
         vertRayX = rayX;
         vertRayY = rayY;
         rayDistVer = length(playerX, playerY, vertRayX, vertRayY);
         dof = MAX_DOF;
+        verticalWall = mapArrPos;
       } else {
         rayX += xOffset;
         rayY += yOffset;
         dof += 1; // next line
       }
     }
+    
+    int tileType = 0;
+    if (rayDistVer > rayDistHor) { tileType = map[horizontalWall]; } // if drawing horizontal wall
+    if (rayDistVer < rayDistHor) { tileType = map[verticalWall]; } // if drawing horizontal wall
+    
+    switch (tileType) {
+      case 1:
+        tileR = 1.0;
+        tileG = 0.0;
+        tileB = 0.5;
+        break;
+
+      case 2:
+        tileR = 0.69;
+        tileG = 1.0;
+        tileB = 0.2;
+        break;
+
+      case 3:
+        tileR = 1.0;
+        tileG = 1.0;
+        tileB = 1.0;
+        break;
+    }
 
     if (rayDistVer < rayDistHor) {
       rayX = vertRayX;
       rayY = vertRayY;
       distance = rayDistVer;
-      glColor3f(0.55, 0.45, 0.40);
+      float rMod = tileR - colourMod;
+      float gMod = tileG - colourMod;
+      float bMod = tileB - colourMod;
+      if (rMod < 0) {rMod = 0;}
+      if (gMod < 0) {gMod = 0;}
+      if (bMod < 0) {bMod = 0;}
+      glColor3f(rMod, gMod, bMod);
     }
 
     if (rayDistHor < rayDistVer) {
       rayX = horRayX;
       rayY = horRayY;
       distance = rayDistHor;
-      glColor3f(0.65, 0.6, 0.55);
+      glColor3f(tileR, tileG, tileB);
     }
 
     // draw rays
@@ -204,8 +243,6 @@ void castRays() {
 
     // draw 3d walls
     float relativeAngle = rayAngle - playerAngle;
-    // if (relativeAngle < 0) { relativeAngle += TAU; }
-    // if (relativeAngle > TAU) { relativeAngle -= TAU; }
     float correctedDistance = distance * cos(relativeAngle);
 
     float lineHeight = (mapSize * VIEWPORT_HEIGHT) / correctedDistance;

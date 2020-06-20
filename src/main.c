@@ -65,7 +65,6 @@ void mouseLook(GLFWwindow* window) {
   prevMouseY = mouseY;
 }
 
-
 void init() {
   glClearColor(0.2, 0.2, 0.2, 0);
   gluOrtho2D(0, WINDOW_WIDTH, WINDOW_HEIGHT, 0);
