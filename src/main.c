@@ -86,7 +86,7 @@ void init() {
   // set player pos
   playerX = 4;
   playerY = 4;
-  playerDirX = -1;
+  playerDirX = 1;
   playerDirY = 0;
   planeX = 0;
   planeY = 0.66;

@@ -80,7 +80,7 @@ void drawMap2D() {
 void castRays() {
   for (int x = 0; x < VIEWPORT_WIDTH; x++) {
     // calculate ray position and direction
-    float cameraX = (2 * (x / (float) mapWidth)) - 1; // x-coordinate in camera space mapped from -1 to 1
+    float cameraX = 2 * x / (float) VIEWPORT_WIDTH - 1; // x-coordinate in camera space mapped from -1 to 1
 
     float rayDirX = playerDirX + (planeX * cameraX), // ray vector
           rayDirY = playerDirY + (planeY * cameraX);
@@ -162,8 +162,8 @@ void castRays() {
       glColor3f(0.7, 0.0, 0.65);
       break;
     }
-    glVertex2i(x,lineStart);
-    glVertex2i(x,lineEnd);
+    glVertex2i(x, lineStart);
+    glVertex2i(x, lineEnd);
     glEnd();
   }
 }
