@@ -8,6 +8,8 @@ A raycaster engine written in C and OpenGL (GLFW).
 
 * Basic makefile
 
+* GitHub workflow
+
 * Collision system
 
 * Loading maps dynamically

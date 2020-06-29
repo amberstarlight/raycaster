@@ -6,7 +6,6 @@
 #include "utils.h"
 #include "gfx.h"
 
-int previousFrameStartTime = 0;
 float playerX, playerY, playerDirX, playerDirY, planeX, planeY;
 
 // Map
@@ -78,7 +77,7 @@ void drawMap2D() {
 }
 
 void castRays() {
-  for (int x = 0; x < VIEWPORT_WIDTH; x++) {
+  for (int x = 0; x <= VIEWPORT_WIDTH; x++) { // wall casting
     // calculate ray position and direction
     float cameraX = 2 * x / (float) VIEWPORT_WIDTH - 1; // x-coordinate in camera space mapped from -1 to 1
 
@@ -132,16 +131,19 @@ void castRays() {
 
       if (map[(currentTileY * mapWidth) + currentTileX] > 0) hit = 1;
     }
-    
+
     // Calculate distance projected on camera direction
     if (!side) {
       perpWallDist = (currentTileX - playerX  + (1 - stepX) / 2) / rayDirX;
     } else {
       perpWallDist = (currentTileY - playerY  + (1 - stepY) / 2) / rayDirY;
     }
-    
+
+
     // Calculate line height to draw
-    int lineHeight = (int)(VIEWPORT_HEIGHT / perpWallDist);
+    float cameraPlaneMagnitude = sqrt((planeX*planeX) + (planeY*planeY)); // use the magnitude of the camera plane to scale the y axis otherwise FOV will cause squishing
+    float scaleModifier = 0.8; // line height is multiplied by this, could be made dynamic based on resolution
+    int lineHeight = (int)(scaleModifier*(VIEWPORT_HEIGHT / perpWallDist / cameraPlaneMagnitude));
 
     // Calculate start and end points for line drawing
     int lineStart = -(lineHeight / 2) + (VIEWPORT_HEIGHT / 2);
@@ -149,19 +151,36 @@ void castRays() {
     int lineEnd = (lineHeight / 2) + (VIEWPORT_HEIGHT / 2);
     if (lineEnd >= VIEWPORT_HEIGHT) lineEnd = VIEWPORT_HEIGHT - 1;
 
-
+    // Set up colours for our lines
+    unsigned char red, green, blue; // rgb values 0 to 255
     glBegin(GL_LINES);
+
     switch (map[(currentTileY * mapWidth) + currentTileX]) {
     case 1:
-      glColor3f(1.0, 1.0, 1.0);
+      red = 105;
+      green = 155;
+      blue = 102;
       break;
     case 2:
-      glColor3f(0.5, 0.5, 0.5);
+      red = 151;
+      green = 204;
+      blue = 199;
       break;
     default:
-      glColor3f(0.7, 0.0, 0.65);
+      red = 137;
+      green = 138;
+      blue = 107;
       break;
     }
+
+    if (!side) {
+      red -= 50;
+      green -= 50;
+      blue -= 50;
+    }
+
+    glBegin(GL_LINES);
+    glColor3ub(red, green, blue);
     glVertex2i(x, lineStart);
     glVertex2i(x, lineEnd);
     glEnd();
@@ -169,15 +188,8 @@ void castRays() {
 }
 
 void display(GLFWwindow* window) {
-  int frameStartTime = glfwGetTime();
-  int deltaTime = frameStartTime - previousFrameStartTime;
-  previousFrameStartTime = frameStartTime;
-
   glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-  
   castRays();
-  
   drawMap2D();
-  frameTime(deltaTime);
   glfwSwapBuffers(window); // swaps our buffers around
 }

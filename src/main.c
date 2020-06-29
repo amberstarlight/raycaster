@@ -12,7 +12,9 @@
 #include "gfx.h"
 
 #define PLAYER_SPEED 0.01
-#define ROTATION_ANGLE 0.1
+#define ROTATION_ANGLE 0.025
+#define SECOND *1000
+#define PI 3.14159265358979323846
 
 void errorCallback(int error, const char* description) {
   fputs(description, stderr);
@@ -83,13 +85,17 @@ void mouseLook(GLFWwindow* window) {
 void init() {
   glClearColor(0.2, 0.2, 0.2, 0);
   gluOrtho2D(0, WINDOW_WIDTH, WINDOW_HEIGHT, 0);
+  
+  int fov = 120; // FOV in degrees
+  float fovRadians = (fov * (PI / 180));
+
   // set player pos
   playerX = 4;
   playerY = 4;
   playerDirX = 1;
   playerDirY = 0;
   planeX = 0;
-  planeY = 0.66;
+  planeY = tan(fovRadians/2);
 }
 
 int main(int argc, char** argv) {
@@ -119,7 +125,22 @@ int main(int argc, char** argv) {
 
   init();
 
+  int previousFrameStartTime = 0;
+  float physicsInterval = (1 SECOND/100); // physics runs at this speed, in frames per second (1 second/100 frames)
+  float accumulator = 0;
+
   while (!glfwWindowShouldClose(window)) {
+    int frameStartTime = glfwGetTime();
+    int deltaTime = frameStartTime - previousFrameStartTime;
+    previousFrameStartTime = frameStartTime;
+
+    accumulator += deltaTime;
+
+    while (accumulator >= physicsInterval) {
+      // physics function here
+      accumulator -= physicsInterval;
+    }
+
     mouseLook(window);
     movement(window);
     display(window);

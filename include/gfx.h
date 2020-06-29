@@ -1,10 +1,10 @@
 #pragma once
 
-#define WINDOW_WIDTH 1280
-#define WINDOW_HEIGHT 720
+#define WINDOW_WIDTH 1920 
+#define WINDOW_HEIGHT 1080
 
-#define VIEWPORT_WIDTH 1280
-#define VIEWPORT_HEIGHT 720
+#define VIEWPORT_WIDTH 1920
+#define VIEWPORT_HEIGHT 1080
 
 // Player position, deltas, and angle
 extern float playerX,    playerY,
